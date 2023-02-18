@@ -54,7 +54,7 @@ export default function ContextContainer({ themeData = {}, children }: Props) {
         }
         if (data) {
           setUser({
-            email: session.user.email,
+            email: session.user?.email || null,
             id: session.user.id,
             ...data,
           });

@@ -1,31 +1,37 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ResizeMode, Video } from "expo-av";
 import {
-  View,
-  StyleSheet,
   Image,
-  TouchbleOpacity,
+  ListRenderItemInfo,
+  StyleSheet,
   useWindowDimensions,
-} from 'react-native';
-import { Text } from 'react-native-paper';
-import { Video, AVPlaybackStatus } from 'expo-av';
-import {MaterialCommunityIcons} from '@expo/vector-icons'
+  View,
+} from "react-native";
+import { Text } from "react-native-paper";
+import { Post } from "../../types";
 
-
-export default function PostItem({ item, index }) {
-  const { text, media } = item.post;
+export default function PostItem({ item, index }: ListRenderItemInfo<Post>) {
+  const { text, media } = item.post as {
+    text: string;
+    media: {
+      type: string;
+      source: string;
+    };
+  };
   const { type: mediaType, source } = media;
   const { width, height } = useWindowDimensions();
-  const mediaStyle = [styles.media, { width, height: 'auto' }];
+  const mediaStyle = [styles.media, { width, height: "auto" }];
   return (
     <View style={[styles.itemContainer, { height: 200 }]}>
-      {mediaType == 'video' && (
+      {mediaType == "video" && (
         <Video
           style={mediaStyle}
           source={{ uri: source }}
-          resizeMode="contain"
+          resizeMode={ResizeMode.CONTAIN}
           useNativeControls
         />
       )}
-      {mediaType == 'image' && (
+      {mediaType == "image" && (
         <Image
           style={mediaStyle}
           source={{ uri: source }}
@@ -37,8 +43,8 @@ export default function PostItem({ item, index }) {
           <Text style={styles.text}>{text}</Text>
         </View>
         <View style={styles.heartContainer}>
-          <Text>{item.likes}</Text>
-          <MaterialCommunityIcons name="heart" size={24}/>
+          <Text>{item.likes?.toString()}</Text>
+          <MaterialCommunityIcons name="heart" size={24} />
         </View>
       </View>
     </View>
@@ -48,8 +54,8 @@ export default function PostItem({ item, index }) {
 const styles = StyleSheet.create({
   itemContainer: {
     // height:POST_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     margin: 5,
     padding: 5,
   },
@@ -59,22 +65,22 @@ const styles = StyleSheet.create({
     // width:POST_SIZE
   },
   text: {
-    textAlign: 'center',
+    textAlign: "center",
   },
-  textContainer:{
-    flex:1
+  textContainer: {
+    flex: 1,
   },
-  heartContainer:{
-    flexDirection:'row',
-    marginHorizontal:5,
-    justifyContent:'center',
-    alignItems:'center'
+  heartContainer: {
+    flexDirection: "row",
+    marginHorizontal: 5,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  row:{
-    flexDirection:'row',
-    width:'100%',
-    padding:5,
-    justifyContent:'center',
-    alignItems:'center'
-  }
+  row: {
+    flexDirection: "row",
+    width: "100%",
+    padding: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
