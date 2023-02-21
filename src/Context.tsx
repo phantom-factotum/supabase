@@ -2,7 +2,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { Session } from "@supabase/supabase-js";
 import React, { createContext, useEffect, useState } from "react";
 import { Provider as PaperProvider } from "react-native-paper";
-import { User } from "../types";
+import { ProfileData, User } from "../types";
 import { saveData } from "./helpers/storage";
 import useThemeReducer, { Theme } from "./hooks/useThemeReducer";
 import { supabase } from "./initSupabase";
@@ -12,9 +12,9 @@ export const ThemeContext = createContext<ThemeContextType>(
 );
 type SContextType = {
   session: Session | null;
-  user: User;
-} | null;
-export const SessionContext = createContext<SContextType>(null);
+  user: User | null;
+};
+export const SessionContext = createContext<SContextType | null>(null);
 
 type Props = {
   themeData?: Theme | {};
@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function ContextContainer({ themeData = {}, children }: Props) {
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const theme = useThemeReducer(themeData);
   // on mount get supabase session
@@ -63,7 +63,7 @@ export default function ContextContainer({ themeData = {}, children }: Props) {
     // subscribe to use profile data changes
     const subscription = supabase
       .channel(`UserProfileData`)
-      .on(
+      .on<ProfileData>(
         "postgres_changes",
         {
           event: "*",
@@ -73,7 +73,7 @@ export default function ContextContainer({ themeData = {}, children }: Props) {
         },
         (payload) => {
           setUser({
-            email: session.user.email,
+            email: session.user.email || null,
             id: session.user.id,
             ...payload["new"],
           });
@@ -92,6 +92,7 @@ export default function ContextContainer({ themeData = {}, children }: Props) {
   return (
     <ThemeContext.Provider value={theme}>
       <PaperProvider theme={theme.theme}>
+        {/*@ts-ignore*/}
         <NavigationContainer style={{ flex: 1 }} theme={theme.theme}>
           <SessionContext.Provider value={{ session, user }}>
             {children}

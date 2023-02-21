@@ -10,15 +10,16 @@ import {
 import { Text } from "react-native-paper";
 import { Post } from "../../types";
 
-export default function PostItem({ item, index }: ListRenderItemInfo<Post>) {
-  const { text, media } = item.post as {
-    text: string;
-    media: {
-      type: string;
-      source: string;
-    };
+export default function PostItem({
+  item,
+  index,
+}: ListRenderItemInfo<NonNullable<Post>>) {
+  const { text, media } = item.post || {
+    text: "",
+    media: { type: "none", source: "" },
   };
-  const { type: mediaType, source } = media;
+  // item.post.
+  const { type: mediaType, source } = media || {};
   const { width, height } = useWindowDimensions();
   const mediaStyle = [styles.media, { width, height: "auto" }];
   return (

@@ -4,8 +4,10 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  FlatListProps,
   StyleSheet,
   View,
+  ViewabilityConfig,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { TabsParamList } from ".";
@@ -18,21 +20,32 @@ const totalPostsToGet = 2;
 
 type Props = BottomTabScreenProps<TabsParamList, "Posts">;
 
+// remove null and undefined from type
+type OnViewableItemsChanged = NonNullable<
+  FlatListProps<Post>["onViewableItemsChanged"]
+>;
+
 export default function PostScreen(props: Props) {
-  const { session } = useContext(SessionContext);
+  const context = useContext(SessionContext);
+  const { user, session } = context || {};
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [visibleItems, setVisibleItems] = useState([]);
-  const viewabilityConfig = useRef({
+  const [visibleItems, setVisibleItems] = useState<Post[]>([]);
+  const viewabilityConfig = useRef<ViewabilityConfig>({
     // minimumViewTime: 100,
     itemVisiblePercentThreshold: 50,
   }).current;
   // wrapped in useCallback so that re-renders doesnt recreate it
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
-    setVisibleItems(viewableItems.map(({ item }) => item));
-  }, []);
+  const onViewableItemsChanged = useCallback<OnViewableItemsChanged>(
+    ({ viewableItems }) => {
+      viewableItems[0].item;
+      if (viewableItems.length > 0)
+        setVisibleItems(viewableItems.map(({ item }: { item: Post }) => item));
+    },
+    []
+  );
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
       setPage((prevPage) => prevPage + 1);
@@ -47,12 +60,11 @@ export default function PostScreen(props: Props) {
         .select("*")
         .order("created_at")
         .range(0, 1);
-      return data[0];
+      return data?.[0];
     };
     const fetchPosts = async () => {
       setIsLoading(true);
-      const lastPost = await fetchLastPost();
-      console.log("last post", lastPost);
+
       const rangeStart = (page - 1) * totalPostsToGet;
       const { data, error } = await supabase
         .from("posts")
@@ -66,9 +78,11 @@ export default function PostScreen(props: Props) {
         setPosts((prev) => prev.concat(data));
         // I couldnt figure out how PAGE_SIZE could be used to know that the last post was reached
         // so I just grab the  last post and look to see if its id is in current data
-        const hasLastPost = Boolean(
-          data.find((post) => post.id == lastPost.id)
-        );
+        const lastPost = await fetchLastPost();
+        console.log("last post", lastPost);
+
+        const hasLastPost =
+          lastPost && Boolean(data.find((post) => post.id == lastPost.id));
         setHasMore(!hasLastPost);
       }
       setIsLoading(false);
@@ -78,6 +92,7 @@ export default function PostScreen(props: Props) {
     const subscription = supabase
       .channel(`Posts`)
       .on(
+        // @ts-ignore
         "postgres_changes",
         {
           event: "*",
@@ -85,9 +100,10 @@ export default function PostScreen(props: Props) {
           table: "posts",
           // filter: `id=eq.${session.user.id}`,
         },
-        (payload) => {
+        (payload: { new: Post }) => {
           setIsLoading(true);
           console.log("Post update");
+
           setPosts((prev) => {
             // either push new post or update existing one
             const postIndex = prev.findIndex(
@@ -113,8 +129,8 @@ export default function PostScreen(props: Props) {
       <Text>Currently visible:</Text>
       <View style={{ padding: 5, margin: 5 }}>
         {visibleItems.map((item) => (
-          <Text style={{ textDecoration: "underline" }}>
-            - {item.post.text.substring(0, 30)}
+          <Text style={{ textDecorationLine: "underline" }}>
+            {"- " + item.post?.text.substring(0, 30)}
           </Text>
         ))}
       </View>
@@ -123,7 +139,7 @@ export default function PostScreen(props: Props) {
         {isLoading && <ActivityIndicator />}
         <FlatList
           data={posts}
-          keyExtractor={(item: Post) => item.id}
+          keyExtractor={(item: Post) => item.id.toString()}
           horizontal={false}
           directionalLockEnabled
           onEndReached={handleLoadMore}
